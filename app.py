@@ -188,7 +188,7 @@ with tab2:
                 "勝率(%)": round(win_rate(g, 1), 1),
                 "連対率(%)": round(win_rate(g, 2), 1),
                 "複勝率(%)": round(win_rate(g, 3), 1),
-            }))
+            }), include_groups=False)
             .reset_index()
         )
         fig = px.bar(
@@ -371,7 +371,7 @@ with tab4:
                 "勝率(%)": round((g["着順"] == 1).mean() * 100, 1),
                 "複勝率(%)": round((g["着順"] <= 3).mean() * 100, 1),
                 "平均着順": round(g["着順"].mean(), 2),
-            }))
+            }), include_groups=False)
             .reset_index()
         )
         sire_stats = sire_stats[sire_stats["出走数"] >= min_count].sort_values("勝率(%)", ascending=False).head(20)
@@ -393,7 +393,7 @@ with tab4:
                 "出走数": len(g),
                 "勝率(%)": round((g["着順"] == 1).mean() * 100, 1),
                 "複勝率(%)": round((g["着順"] <= 3).mean() * 100, 1),
-            }))
+            }), include_groups=False)
             .reset_index()
         )
         bms_stats = bms_stats[bms_stats["出走数"] >= min_count].sort_values("複勝率(%)", ascending=False).head(20)
@@ -413,7 +413,7 @@ with tab4:
     sire_surface = (
         df_ped[df_ped["父"].isin(top_sires)]
         .groupby(["父", "馬場"])
-        .apply(lambda g: round((g["着順"] <= 3).mean() * 100, 1))
+        .apply(lambda g: round((g["着順"] <= 3).mean() * 100, 1), include_groups=False)
         .unstack("馬場")
     )
     st.dataframe(sire_surface, use_container_width=True)
@@ -438,7 +438,7 @@ with tab5:
                 "勝率(%)": round((g["着順"] == 1).mean() * 100, 1),
                 "連対率(%)": round((g["着順"] <= 2).mean() * 100, 1),
                 "複勝率(%)": round((g["着順"] <= 3).mean() * 100, 1),
-            }))
+            }), include_groups=False)
             .reset_index()
             .sort_values("勝利数", ascending=False)
             .head(top_n)
@@ -462,7 +462,7 @@ with tab5:
                 "勝利数": (g["着順"] == 1).sum(),
                 "勝率(%)": round((g["着順"] == 1).mean() * 100, 1),
                 "複勝率(%)": round((g["着順"] <= 3).mean() * 100, 1),
-            }))
+            }), include_groups=False)
             .reset_index()
             .sort_values("勝利数", ascending=False)
             .head(top_n)
