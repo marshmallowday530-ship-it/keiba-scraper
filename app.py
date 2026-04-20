@@ -512,7 +512,7 @@ with tab6:
     def calc_ev(df_json: str, group_cols: tuple) -> pd.DataFrame:
         """グループ別の回収率・期待値を計算する（JSON経由でキャッシュ）"""
         import json
-        src = pd.read_json(json.loads(df_json), orient="split")
+        src = pd.read_json(df_json, orient="split")
         # 数値列を復元
         for c in ["着順", "単勝オッズ", "人気", "枠番", "距離(m)"]:
             if c in src.columns:
