@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# 環境変数（シークレット）
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 日付別個別 CSV（master_data.csv に統合済みのため不要）
+src/data/[0-9]*.csv
+data/[0-9]*.csv
+
+# テスト・キャッシュ
+.pytest_cache/

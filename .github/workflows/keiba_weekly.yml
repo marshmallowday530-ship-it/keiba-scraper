@@ -1,0 +1,78 @@
+name: 競馬レース結果 週次取得
+
+on:
+  schedule:
+    # 毎週日曜 21:00 JST (= UTC 12:00)
+    - cron: "0 12 * * 0"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "対象日 YYYYMMDD（省略時は直近の日曜）"
+        required: false
+        default: ""
+      no_pedigree:
+        description: "血統取得をスキップ (true/false)"
+        required: false
+        default: "false"
+
+# master_data.csv をリポジトリへ push するために書き込み権限が必要
+permissions:
+  contents: write
+
+jobs:
+  scrape-and-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Python セットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: 依存パッケージインストール
+        run: pip install -r requirements.txt
+
+      - name: スクレイピング & CSV 書き込み
+        working-directory: src
+        env:
+          SCRAPE_DELAY_SECONDS: "2"
+          # app.py が src/data/master_data.csv を参照するため OUTPUT_DIR は "data"
+          OUTPUT_DIR: "data"
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            ARGS="$ARGS --date ${{ github.event.inputs.date }}"
+          fi
+          if [ "${{ github.event.inputs.no_pedigree }}" = "true" ]; then
+            ARGS="$ARGS --no-pedigree"
+          fi
+          python main.py $ARGS
+
+      - name: 更新された master_data.csv をコミット＆プッシュ
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/data/master_data.csv
+          # 変更がなければスキップ（冪等）
+          if git diff --staged --quiet; then
+            echo "変更なし — コミットをスキップします"
+          else
+            git commit -m "data: 週次レース結果更新 $(TZ=Asia/Tokyo date '+%Y-%m-%d')"
+            git push
+          fi
+
+      - name: 実行結果をサマリーに記録
+        if: always()
+        run: |
+          echo "## 実行結果" >> $GITHUB_STEP_SUMMARY
+          echo "- 実行日時: $(TZ=Asia/Tokyo date)" >> $GITHUB_STEP_SUMMARY
+          echo "- ステータス: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          if [ -f src/data/master_data.csv ]; then
+            LINES=$(wc -l < src/data/master_data.csv)
+            echo "- master_data.csv: ${LINES} 行" >> $GITHUB_STEP_SUMMARY
+          fi
