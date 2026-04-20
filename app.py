@@ -271,7 +271,7 @@ with tab3:
         )
         if not pivot_time.empty:
             # 表示テキストをタイム形式に変換
-            text_matrix = pivot_time.applymap(
+            text_matrix = pivot_time.map(
                 lambda x: sec_to_time(x) if pd.notna(x) else ""
             )
             fig_t1 = px.imshow(
