@@ -566,7 +566,7 @@ with tab6:
     else:
         # DataFrameをJSONシリアライズしてキャッシュキーに使う
         import json
-        df_json = json.dumps(df_ev_src.to_json(orient="split"))
+        df_json = df_ev_src.to_json(orient="split")
         ev_stats = calc_ev(df_json, group_cols)
         ev_stats = (
             ev_stats[ev_stats["出走数"] >= min_starts]
