@@ -4,6 +4,7 @@ netkeiba スクレイパー
 """
 
 import time
+import random
 import re
 import logging
 from datetime import datetime, timedelta
@@ -27,8 +28,10 @@ BASE_URL = "https://db.netkeiba.com"
 
 
 def _get(url: str, delay: float = 2.0) -> BeautifulSoup:
-    """GETリクエスト＋待機。サイト負荷軽減のためdelay秒待つ。"""
-    time.sleep(delay)
+    """GETリクエスト＋待機。delay〜delay+1秒のランダムスリープでサイト負荷を軽減。"""
+    wait = random.uniform(delay, delay + 1.0)
+    logger.debug(f"sleep {wait:.2f}s before {url}")
+    time.sleep(wait)
     resp = requests.get(url, headers=HEADERS, timeout=30)
     resp.raise_for_status()
     resp.encoding = resp.apparent_encoding
