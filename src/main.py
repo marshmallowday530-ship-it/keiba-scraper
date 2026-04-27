@@ -4,6 +4,7 @@
 
 import argparse
 import os
+import sys
 import logging
 from datetime import datetime, timedelta
 
@@ -31,13 +32,14 @@ def main():
 
     target_date = args.date or os.environ.get("TARGET_DATE") or None
 
-    # date_str を確定（ファイル名に使う）
+    # date_str を確定してから target_date を更新（スクレイパーへ正しい日付を渡すため）
     if target_date:
         date_str = target_date
     else:
         today = datetime.today()
         days_since_sunday = today.weekday() + 1 if today.weekday() != 6 else 0
         date_str = (today - timedelta(days=days_since_sunday)).strftime("%Y%m%d")
+    target_date = date_str
 
     # 1. スクレイピング
     logger.info("スクレイピング開始")
@@ -47,6 +49,9 @@ def main():
         delay=delay,
     )
     logger.info(f"取得レース数: {len(all_races)}")
+    if not all_races:
+        logger.error("レースデータを取得できませんでした。ネットワークまたはスクレイパーを確認してください。")
+        sys.exit(1)
 
     # 2. 整形
     rows = build_sheet_rows(all_races, include_header=False)
