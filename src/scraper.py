@@ -24,7 +24,30 @@ HEADERS = {
         "Chrome/124.0.0.0 Safari/537.36"
     )
 }
+PEDIGREE_HEADERS = {
+    **HEADERS,
+    "Referer": "https://db.netkeiba.com/",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+}
 BASE_URL = "https://db.netkeiba.com"
+
+# db.netkeiba.com 用セッション（Cookie を保持してボット検知を回避）
+_db_session: requests.Session | None = None
+
+
+def _get_db_session() -> requests.Session:
+    """db.netkeiba.com トップを訪問して Cookie を取得したセッションを返す。"""
+    global _db_session
+    if _db_session is None:
+        s = requests.Session()
+        s.headers.update(PEDIGREE_HEADERS)
+        try:
+            s.get(BASE_URL, timeout=15)
+        except Exception:
+            pass
+        _db_session = s
+    return _db_session
 
 
 def _get(url: str, delay: float = 2.0) -> BeautifulSoup:
@@ -182,7 +205,13 @@ def get_pedigree(horse_id: str, delay: float = 2.0) -> dict:
     """horse_id から父・母・母父を取得する。"""
     url = f"{BASE_URL}/horse/ped/{horse_id}/"
     try:
-        soup = _get(url, delay)
+        wait = random.uniform(delay, delay + 1.0)
+        time.sleep(wait)
+        session = _get_db_session()
+        resp = session.get(url, timeout=30)
+        resp.raise_for_status()
+        resp.encoding = resp.apparent_encoding
+        soup = BeautifulSoup(resp.text, "lxml")
         table = soup.select_one("table.blood_table")
         if table is None:
             return {}
@@ -228,17 +257,31 @@ def scrape_race(race_id: str, fetch_pedigree: bool = True, delay: float = 2.0, r
     laps = _parse_lap(soup)
 
     if fetch_pedigree and not results_df.empty:
+        from pedigree_cache import load_cache, save_cache
+        cache = load_cache()
         sire_list, dam_list, broodmare_sire_list = [], [], []
+        cache_updated = False
         for _, row in results_df.iterrows():
-            if row["horse_id"]:
-                ped = get_pedigree(row["horse_id"], delay)
+            hid = row["horse_id"]
+            if not hid:
+                sire_list.append("")
+                dam_list.append("")
+                broodmare_sire_list.append("")
+            elif hid in cache:
+                ped = cache[hid]
                 sire_list.append(ped.get("父", ""))
                 dam_list.append(ped.get("母", ""))
                 broodmare_sire_list.append(ped.get("母父", ""))
             else:
-                sire_list.append("")
-                dam_list.append("")
-                broodmare_sire_list.append("")
+                ped = get_pedigree(hid, delay)
+                sire_list.append(ped.get("父", ""))
+                dam_list.append(ped.get("母", ""))
+                broodmare_sire_list.append(ped.get("母父", ""))
+                if ped:
+                    cache[hid] = ped
+                    cache_updated = True
+        if cache_updated:
+            save_cache(cache)
         results_df["父"] = sire_list
         results_df["母"] = dam_list
         results_df["母父"] = broodmare_sire_list
