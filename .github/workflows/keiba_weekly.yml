@@ -13,7 +13,7 @@ on:
       no_pedigree:
         description: "血統取得をスキップ (true/false)"
         required: false
-        default: "false"
+        default: "true"
 
 # master_data.csv をリポジトリへ push するために書き込み権限が必要
 permissions:
@@ -44,12 +44,9 @@ jobs:
           # app.py が src/data/master_data.csv を参照するため OUTPUT_DIR は "data"
           OUTPUT_DIR: "data"
         run: |
-          ARGS=""
+          ARGS="--no-pedigree"
           if [ -n "${{ github.event.inputs.date }}" ]; then
             ARGS="$ARGS --date ${{ github.event.inputs.date }}"
-          fi
-          if [ "${{ github.event.inputs.no_pedigree }}" = "true" ]; then
-            ARGS="$ARGS --no-pedigree"
           fi
           python main.py $ARGS
 
